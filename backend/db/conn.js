@@ -1,6 +1,6 @@
 const mongoose= require('mongoose');
 
-const DB = 'mongodb://127.0.0.1:27017/duotoons';
+const DB = process.env.MONGO_URL;
 
 mongoose.connect(DB, {
     useNewUrlParser: true,
