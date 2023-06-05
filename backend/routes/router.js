@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const users = require('../models/userSchema');
 const carts = require('../models/cartSchema');
+const orders = require('../models/orderSchema');
 const products = require('../models/productSchema');
 const jwt = require("jsonwebtoken");
 const auth = require("../middlewares/auth");
 const jwt_decode = require("jwt-decode");
 const bcrypt = require("bcryptjs");
+const { default: mongoose } = require('mongoose');
 
 
 //Routes
@@ -96,20 +98,24 @@ router.post('/addToCart', auth, async (req, res) => {
     const { product } = req.body;
     const token = req.header('x-access-token');
     const email = jwt_decode(token).email;
-    
+
     if (!email) {
         res.status(404).json('Please login!');
     }
     else {
         try {
-            const preEmail = await carts.findOne({ userEmail: email });
-            if (preEmail) {
-                preEmail.productId.push(product);
-                preEmail.save();
+            const userCart = await carts.findOne({ userEmail: email });
+            const productDetails = await products.findOne({ _id: product });
+
+            if (userCart) {
+                await userCart.productId.push(product);
+                const updatedCost = userCart.totalCost + productDetails.price;
+                await carts.updateOne({ _id: userCart._id }, { $set: { totalCost: updatedCost } });
+                userCart.save();
                 res.status(201).json('Item added successfully!');
             }
             else {
-                const addCart = new carts({ productId: [product], userEmail: email });
+                const addCart = new carts({ productId: [product], userEmail: email, totalCost: productDetails.price });
                 await addCart.save();
                 res.status(201).json('Item added successfully!');
             }
@@ -129,9 +135,36 @@ router.post('/removeFromCart', auth, async (req, res) => {
     }
     else {
         try {
-            const addUser = new users({ email, phone, nickname, password, cpassword });
-            await addUser.save();
+            const productDetails = await products.findOne({ _id: product });
+            const userCart = await carts.findOne({ userEmail: email });
+
+            const index = userCart.productId.indexOf(product);
+            userCart.productId.splice(index, 1);
+
+            const updatedCost = userCart.totalCost - productDetails.price;
+            await carts.updateOne({ _id: userCart._id }, { $set: { totalCost: updatedCost } });
+            userCart.save();
             res.status(201).json('Item removed successfully!');
+        } catch (error) {
+            res.status(404).json('Something went wrong : ' + error);
+        }
+    }
+})
+
+router.post('/checkout', auth, async (req, res) => {
+    const token = req.header('x-access-token');
+    const email = jwt_decode(token).email;
+
+    if (!email) {
+        res.status(404).json('Please login!');
+    }
+    else {
+        try {
+            const userCart = await carts.findOne({ userEmail: email });
+            const addOrder = new orders({ productId: userCart.productId, userEmail: email, totalPrice: userCart.totalCost});
+            await carts.deleteOne({ _id: userCart._id });
+            await addOrder.save();
+            res.status(201).json('Order done successfully!');
         } catch (error) {
             res.status(404).json('Something went wrong : ' + error);
         }
