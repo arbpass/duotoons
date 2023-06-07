@@ -59,7 +59,7 @@ router.post('/login', async (req, res) => {
                         expiresIn: "2h",
                     }
                 );
-                res.status(201).json(token);
+                res.status(201).json({token});
             }
         } catch (error) {
             res.status(404).json('Something went wrong : ' + error);

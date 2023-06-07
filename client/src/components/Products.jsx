@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
-import { addCart } from "../redux/action";
-
+import { useDispatch, useSelector } from "react-redux";
+import { addCart, newCart, cartDone } from "../redux/action";
+import jwt_decode from "jwt-decode";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
@@ -12,8 +12,10 @@ const Products = () => {
   const [filter, setFilter] = useState(data);
   const [loading, setLoading] = useState(false);
   let componentMounted = true;
+  let email = localStorage.getItem('_token') ? jwt_decode(localStorage.getItem('_token'))['email'] : "";
 
   const dispatch = useDispatch();
+  const stateCartDone = useSelector((stateCartDone) => stateCartDone.handleRender);
 
   const addProduct = (product) => {
     dispatch(addCart(product))
@@ -22,11 +24,24 @@ const Products = () => {
   useEffect(() => {
     const getProducts = async () => {
       setLoading(true);
-      const response = await fetch("https://fakestoreapi.com/products/");
+      const response = await fetch("getProducts/" + email, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }).then((response) => response.json());
+
       if (componentMounted) {
-        setData(await response.clone().json());
-        setFilter(await response.json());
+        email ? setData(await response['allProducts']) : setData(await response);
+        email ? setFilter(await response['allProducts']) : setFilter(await response);
         setLoading(false);
+      }
+
+      if (email && !stateCartDone) {
+        response['allCart']['productId'].forEach(ele1 => {
+          response['allProducts'].forEach(ele2 => {
+            if (ele1 == ele2._id) dispatch(newCart(ele2));
+          });
+        });
+        dispatch(cartDone());
       }
 
       return () => {
@@ -84,32 +99,32 @@ const Products = () => {
 
         {filter.map((product) => {
           return (
-            <div id={product.id} key={product.id} className="col-md-4 col-sm-6 col-xs-8 col-12 mb-4">
-              <div className="card text-center h-100" key={product.id}>
+            <div id={product._id} key={product._id} className="col-md-4 col-sm-6 col-xs-8 col-12 mb-4">
+              <div className="card text-center h-100" key={product._id}>
                 <img
                   className="card-img-top p-3"
                   src={product.image}
                   alt="Card"
-                  height={300}
+                  height={400}
                 />
                 <div className="card-body">
                   <h5 className="card-title">
-                    {product.title.substring(0, 12)}...
+                    {product.product.substring(0, 12)}...
                   </h5>
                   <p className="card-text">
                     {product.description.substring(0, 90)}...
                   </p>
                 </div>
                 <ul className="list-group list-group-flush">
-                  <li className="list-group-item lead">$ {product.price}</li>
+                  <li className="list-group-item lead">₹{product.price}</li>
                   {/* <li className="list-group-item">Dapibus ac facilisis in</li>
                     <li className="list-group-item">Vestibulum at eros</li> */}
                 </ul>
                 <div className="card-body">
-                  <Link to={"/product/" + product.id} className="btn btn-dark m-1">
+                  <Link to={"/product/" + product._id} className="btn btn-dark m-1">
                     Buy Now
                   </Link>
-                  <button className="btn btn-dark m-1" onClick={() => addProduct(product)}>
+                  <button className="btn btn-dark m-1" onClick={() => addProduct(product)} disabled={email?false:true}>
                     Add to Cart
                   </button>
                 </div>

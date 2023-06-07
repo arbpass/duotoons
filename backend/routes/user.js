@@ -9,8 +9,8 @@ const { default: mongoose } = require('mongoose');
 
 
 //User side routes
-router.get('/getProducts', async (req, res) => {
-    const { email } = req.body;
+router.get('/getProducts/:email?', async (req, res) => {
+    const { email } = req.params;
 
     if (!email) {
         const allProducts = await products.find();
@@ -21,6 +21,20 @@ router.get('/getProducts', async (req, res) => {
         const allCart = await carts.findOne({ userEmail: email });
         res.status(201).json({ allProducts, allCart });
     }
+})
+
+router.get('/getProduct/:id?', async (req, res) => {
+    const { id } = req.params;
+
+    const allProducts = await products.findOne({ _id: id });
+    res.status(201).json(allProducts);
+})
+
+router.get('/getProduct/category/:cat?', async (req, res) => {
+    const { cat } = req.params;
+
+    const allProducts = await products.find({ category: cat });
+    res.status(201).json(allProducts);
 })
 
 router.post('/addToCart', auth, async (req, res) => {
@@ -90,7 +104,7 @@ router.post('/checkout', auth, async (req, res) => {
     else {
         try {
             const userCart = await carts.findOne({ userEmail: email });
-            const addOrder = new orders({ productId: userCart.productId, userEmail: email, totalPrice: userCart.totalCost});
+            const addOrder = new orders({ productId: userCart.productId, userEmail: email, totalPrice: userCart.totalCost });
             await carts.deleteOne({ _id: userCart._id });
             await addOrder.save();
             res.status(201).json('Order done successfully!');

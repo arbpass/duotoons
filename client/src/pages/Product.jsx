@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import Marquee from "react-fast-marquee";
 import { useDispatch } from "react-redux";
 import { addCart } from "../redux/action";
+import jwt_decode from "jwt-decode";
+
 
 import { Footer, Navbar } from "../components";
 
@@ -13,6 +15,7 @@ const Product = () => {
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loading2, setLoading2] = useState(false);
+  let email = localStorage.getItem('_token') ? jwt_decode(localStorage.getItem('_token'))['email'] : "";
 
   const dispatch = useDispatch();
 
@@ -24,14 +27,19 @@ const Product = () => {
     const getProduct = async () => {
       setLoading(true);
       setLoading2(true);
-      const response = await fetch(`https://fakestoreapi.com/products/${id}`);
-      const data = await response.json();
+      const response = await fetch(`http://localhost:4000/getProduct/${id}`, {
+        method: 'GET', mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+      }).then((response) => response.json());
+
+      const data = await response;
       setProduct(data);
       setLoading(false);
       const response2 = await fetch(
-        `https://fakestoreapi.com/products/category/${data.category}`
-      );
-      const data2 = await response2.json();
+        `http://localhost:4000/getProduct/category/${data.category}`
+      ).then((response2) => response2.json());
+
+      const data2 = await response2;
       setSimilarProducts(data2);
       setLoading2(false);
     };
@@ -70,24 +78,21 @@ const Product = () => {
               <img
                 className="img-fluid"
                 src={product.image}
-                alt={product.title}
+                alt={product.product}
                 width="400px"
                 height="400px"
               />
             </div>
             <div className="col-md-6 col-md-6 py-5">
               <h4 className="text-uppercase text-muted">{product.category}</h4>
-              <h1 className="display-5">{product.title}</h1>
+              <h1 className="display-5">{product.product}</h1>
               <p className="lead">
                 {product.rating && product.rating.rate}{" "}
                 <i className="fa fa-star"></i>
               </p>
-              <h3 className="display-6  my-4">${product.price}</h3>
+              <h3 className="display-6  my-4">₹{product.price}</h3>
               <p className="lead">{product.description}</p>
-              <button
-                className="btn btn-outline-dark"
-                onClick={() => addProduct(product)}
-              >
+              <button className="btn btn-outline-dark" onClick={() => addProduct(product)} disabled={email?false:true}>
                 Add to Cart
               </button>
               <Link to="/cart" className="btn btn-dark mx-3">
@@ -130,7 +135,7 @@ const Product = () => {
           <div className="d-flex">
             {similarProducts.map((item) => {
               return (
-                <div key={item.id} className="card mx-4 text-center">
+                <Link to={"/product/" + item._id} key={item._id} className="card mx-4 text-center text-decoration-none text-dark">
                   <img
                     className="card-img-top p-3"
                     src={item.image}
@@ -140,27 +145,14 @@ const Product = () => {
                   />
                   <div className="card-body">
                     <h5 className="card-title">
-                      {item.title.substring(0, 15)}...
+                      {item.product.substring(0, 15)}...
                     </h5>
+                    <p className="lead">{item.description}</p>
                   </div>
                   {/* <ul className="list-group list-group-flush">
                     <li className="list-group-item lead">${product.price}</li>
                   </ul> */}
-                  <div className="card-body">
-                    <Link
-                      to={"/product/" + item.id}
-                      className="btn btn-dark m-1"
-                    >
-                      Buy Now
-                    </Link>
-                    <button
-                      className="btn btn-dark m-1"
-                      onClick={() => addProduct(item)}
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -175,7 +167,7 @@ const Product = () => {
         <div className="row">{loading ? <Loading /> : <ShowProduct />}</div>
         <div className="row my-5 py-5">
           <div className="d-none d-md-block">
-          <h2 className="">You may also Like</h2>
+            <h2 className="">You may also Like</h2>
             <Marquee
               pauseOnHover={true}
               pauseOnClick={true}

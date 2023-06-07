@@ -13,3 +13,30 @@ export const delCart = (product) =>{
         payload:product
     }
 }
+
+// For Reset Items to Cart
+export const newCart = (product) =>{
+    return {
+        type:"NEWCART",
+        payload:product
+    }
+}
+
+//Cart reset only once
+export const cartDone = (num) => {
+    return {
+        type: 'CARTDONE',
+    }
+}
+
+export const loggedIn = (num) => {
+    return {
+        type: 'LOGGEDIN',
+    }
+}
+
+export const loggedOut = (num) => {
+    return {
+        type: 'LOGGEDOUT',
+    }
+}

@@ -1,9 +1,33 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSelector } from 'react-redux'
+import { useDispatch } from "react-redux";
+import { loggedIn, loggedOut } from "../redux/action";
+import jwt_decode from "jwt-decode";
+import { useNavigate } from "react-router-dom";
+
 
 const Navbar = () => {
     const state = useSelector(state => state.handleCart)
+    const stateLog = useSelector(state => state.handleLog)
+    let email = localStorage.getItem('_token') ? jwt_decode(localStorage.getItem('_token'))['email'] : "";
+    const navigate = useNavigate();
+
+
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        // if (localStorage.getItem('_token')) email = jwt_decode(localStorage.getItem('_token'))['email'];
+
+        if (email) dispatch(loggedIn());
+        else dispatch(loggedOut());
+    }, []);
+
+    function handleLogout() {
+        localStorage.clear();
+        window.location.href = "/login";
+    }
+
     return (
         <nav className="navbar navbar-expand-lg navbar-light bg-light py-3 sticky-top">
             <div className="container">
@@ -28,9 +52,19 @@ const Navbar = () => {
                         </li>
                     </ul>
                     <div className="buttons text-center">
-                        <NavLink to="/login" className="btn btn-outline-dark m-2"><i className="fa fa-sign-in-alt mr-1"></i> Login</NavLink>
-                        <NavLink to="/register" className="btn btn-outline-dark m-2"><i className="fa fa-user-plus mr-1"></i> Register</NavLink>
-                        <NavLink to="/cart" className="btn btn-outline-dark m-2"><i className="fa fa-cart-shopping mr-1"></i> Cart ({state.length}) </NavLink>
+                        {
+                            !stateLog ? (
+                                <>
+                                    <NavLink to="/login" className="btn btn-outline-dark m-2"><i className="fa fa-sign-in-alt mr-1"></i> Login</NavLink>
+                                    <NavLink to="/register" className="btn btn-outline-dark m-2"><i className="fa fa-user-plus mr-1"></i> Register</NavLink>
+                                </>
+                            ) : (
+                                <>
+                                    <NavLink to="/cart" className="btn btn-outline-dark m-2"><i className="fa fa-cart-shopping mr-1"></i> Cart ({state.length}) </NavLink>
+                                    <button onClick={() => handleLogout()} className="btn btn-outline-dark m-2"><i className="fa fa-user-plus mr-1"></i> Logout</button>
+                                </>
+                            )
+                        }
                     </div>
                 </div>
 
