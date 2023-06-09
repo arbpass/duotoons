@@ -1,12 +1,50 @@
-import React from "react";
+import React, { useState } from "react";
 import { Footer, Navbar } from "../components";
 import { useSelector, useDispatch } from "react-redux";
 import { addCart, delCart } from "../redux/action";
 import { Link } from "react-router-dom";
+import Axios from 'axios';
+import { useNavigate } from "react-router-dom";
+import jwt_decode from "jwt-decode";
+
+
 
 const Cart = () => {
+  const [subtotal, setSubtotal] = useState(0);
   const state = useSelector((state) => state.handleCart);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  let email = localStorage.getItem('_token') ? jwt_decode(localStorage.getItem('_token'))['email'] : "";
+
+  const paymentHandler = async (e) => {
+    const API_URL = 'http://localhost:4000/'
+    e.preventDefault();
+    const orderUrl = `${API_URL}order/${subtotal+30}`;
+    const response = await Axios.get(orderUrl);
+    const { data } = response;
+    const options = {
+      key: 'rzp_test_1fTjSvIIgBkt6M',
+      name: "DuoToons",
+      description: "Description is here!",
+      order_id: data.id,
+      handler: async (response) => {
+        try {
+          const paymentId = response.razorpay_payment_id;
+          const url = `${API_URL}capture/${paymentId}/${email}/${subtotal}`;
+          const captureResponse = await Axios.post(url, {})
+          // console.log(captureResponse.data);
+          navigate('/');
+        } catch (err) {
+          console.log(err);
+        }
+      },
+      theme: {
+        color: "#f52043",
+      },
+    };
+    const rzp1 = new window.Razorpay(options);
+    rzp1.open();
+  };
 
   const EmptyCart = () => {
     return (
@@ -35,7 +73,7 @@ const Cart = () => {
     let shipping = 30.0;
     let totalItems = 0;
     state.map((item) => {
-      return (subtotal += item.price * item.qty);
+      setSubtotal(subtotal += item.price * item.qty);
     });
 
     state.map((item) => {
@@ -145,12 +183,12 @@ const Cart = () => {
                       </li>
                     </ul>
 
-                    <Link
-                      to="/checkout"
+                    <button
+                      onClick={paymentHandler}
                       className="btn btn-dark btn-lg btn-block"
                     >
                       Go to checkout
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
