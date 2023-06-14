@@ -50,7 +50,7 @@ router.post('/login', async (req, res) => {
         try {
             const preEmail = await users.findOne({ email: email });
             if (!preEmail) res.status(404).json('User with this Email does not exist!');
-            else if (preEmail.password != password) res.status(404).json('Password is incorrect!');
+            else if (!bcrypt.compare(preEmail.password, password)) res.status(404).json('Password is incorrect!');
             else {
                 // Create token
                 const token = jwt.sign(
